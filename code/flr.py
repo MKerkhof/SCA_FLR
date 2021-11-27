@@ -3,7 +3,7 @@ import tensorflow as tf
 
 
 # Focal loss ratio,
-def flr_loss(n, num_classes=9, alpha=None, gamma=2.0):
+def flr_loss(n, alpha=None, gamma=2.0):
     fl = flc.categorical_focal_loss(alpha=alpha
                                     , gamma=gamma)
 

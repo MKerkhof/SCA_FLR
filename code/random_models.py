@@ -11,7 +11,6 @@ from tensorflow.python.keras.utils.np_utils import to_categorical
 from cer import cer_loss
 from flr import flr_loss
 from focal_loss import *
-from myloss import *
 from rankingloss import *
 
 argparser = argparse.ArgumentParser(description="Script to train CNN/MLP models with random architectures on various "
@@ -86,47 +85,27 @@ sbox = (
     0xe1, 0xf8, 0x98, 0x11, 0x69, 0xd9, 0x8e, 0x94, 0x9b, 0x1e, 0x87, 0xe9, 0xce, 0x55, 0x28, 0xdf,
     0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16)
 
-# Chipwhisperer data
-if dataset == 'chipwhisperer':
-    raw_traces = np.load(
-        "C:\\Users\\maike\\PycharmProjects\\Thesis\\data\\chipwhisperer_data\\chipwhisperer_data\\data\\traces.npy")
-    known_key = \
-        np.load(
-            "C:\\Users\\maike\\PycharmProjects\\Thesis\\data\\chipwhisperer_data\\chipwhisperer_data\\data\\key.npy")[0]
-    pt = np.load(
-        "C:\\Users\\maike\\PycharmProjects\\Thesis\\data\\chipwhisperer_data\\chipwhisperer_data\\data\\plain.npy")
 
-    attack_key = known_key
-    profiling_traces = raw_traces[0:8500]
-    profiling_plaintext = pt[0:8500]
+with h5py.File(files[dataset], "r") as f:
+    attack = f['Attack_traces']
+    profiling = f['Profiling_traces']
 
-    attack_traces = raw_traces[8500:]
-    attack_plaintext = pt[8500:]
+    attack_traces = attack['traces'][()]
+    attack_metadata = attack['metadata'][()]
 
-    known_keys = []
-    [known_keys.append(known_key) for i in range(len(profiling_traces))]
+    profiling_traces = profiling['traces'][()]
+    profiling_metadata = profiling['metadata'][()]
+
+profiling_plaintext = [i[0] for i in profiling_metadata]
+attack_plaintext = [i[0] for i in attack_metadata]
+
+if dataset == "ascad_variable":
+    known_keys = [list(trace[1]) for trace in profiling_metadata]
+    attack_key = attack_metadata[0][1]
 
 else:
-    with h5py.File(files[dataset], "r") as f:
-        attack = f['Attack_traces']
-        profiling = f['Profiling_traces']
-
-        attack_traces = attack['traces'][()]
-        attack_metadata = attack['metadata'][()]
-
-        profiling_traces = profiling['traces'][()]
-        profiling_metadata = profiling['metadata'][()]
-
-    profiling_plaintext = [i[0] for i in profiling_metadata]
-    attack_plaintext = [i[0] for i in attack_metadata]
-
-    if dataset == "ascad_variable":
-        known_keys = [list(trace[1]) for trace in profiling_metadata]
-        attack_key = attack_metadata[0][1]
-
-    else:
-        known_keys = [list(trace[2]) for trace in profiling_metadata]
-        attack_key = attack_metadata[0][2]
+    known_keys = [list(trace[2]) for trace in profiling_metadata]
+    attack_key = attack_metadata[0][2]
 
 print(f'Training on keybyte {keybyte} of {dataset}. Known key: {known_keys[0]}, attack key: {attack_key}')
 
@@ -174,17 +153,13 @@ def create_mlp(nr_layers, nr_nodes, activation, optimiser, learning_rate, loss, 
         model = tf.keras.models.Model(start, predictions)
         model.compile(loss=cer_loss(10),
                       optimizer=optimiser(learning_rate=learning_rate), metrics=['accuracy'])
-    elif loss == 'cos_cross_loss':
-        model = tf.keras.models.Model(start, predictions)
-        model.compile(loss=cosine_crossentropy(),
-                      optimizer=optimiser(learning_rate=learning_rate), metrics=['accuracy'])
     elif loss == 'focal_loss':
         model = tf.keras.models.Model(start, predictions)
         model.compile(loss=categorical_focal_loss(alpha=[np.full(num_classes, fill_value=alpha)], gamma=gamma),
                       optimizer=optimiser(learning_rate=learning_rate), metrics=['accuracy'])
     elif loss == 'flr_loss':
         model = tf.keras.models.Model(start, predictions)
-        model.compile(loss=flr_loss(3, num_classes, alpha=alpha, gamma=gamma),
+        model.compile(loss=flr_loss(3, alpha=alpha, gamma=gamma),
                       optimizer=optimiser(learning_rate=learning_rate), metrics=['accuracy'])
     else:
         model = tf.keras.models.Model(start, predictions)
@@ -237,17 +212,13 @@ def create_cnn(cov_layers, cov_filters, cov_kernel, pool_size, pool_stride, pool
         model = tf.keras.models.Model(start, predictions)
         model.compile(loss=cer_loss(10),
                       optimizer=optimiser(learning_rate=learning_rate), metrics=['accuracy'])
-    elif loss == 'cos_cross_loss':
-        model = tf.keras.models.Model(start, predictions)
-        model.compile(loss=cosine_crossentropy(),
-                      optimizer=optimiser(learning_rate=learning_rate), metrics=['accuracy'])
     elif loss == 'focal_loss':
         model = tf.keras.models.Model(start, predictions)
         model.compile(loss=categorical_focal_loss(alpha=[np.full(num_classes, fill_value=alpha)], gamma=gamma),
                       optimizer=optimiser(learning_rate=learning_rate), metrics=['accuracy'])
     elif loss == 'flr_loss':
         model = tf.keras.models.Model(start, predictions)
-        model.compile(loss=flr_loss(3, num_classes, alpha=alpha, gamma=gamma),
+        model.compile(loss=flr_loss(3, alpha=alpha, gamma=gamma),
                       optimizer=optimiser(learning_rate=learning_rate), metrics=['accuracy'])
     else:
         model = tf.keras.models.Model(start, predictions)
