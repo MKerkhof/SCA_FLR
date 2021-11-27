@@ -1,0 +1,1 @@
+Models trained by 'random_models.py' or 'train_specific.py' will be stored here. Each model consists of two files: the actual model as .h5 file, and a file containing relevant information related to the model in a .npy file with the same name.

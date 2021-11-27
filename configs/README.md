@@ -1,0 +1,1 @@
+Folder to store .npy files from previously trained models. These can be used by train_specific.py when given the 'from_files' argument to train models with the same hyperparameters.

@@ -1,0 +1,1 @@
+Datasets to be used should be stored here in .h5 files. These can be retrieved from http://aisylabdatasets.ewi.tudelft.nl/.
